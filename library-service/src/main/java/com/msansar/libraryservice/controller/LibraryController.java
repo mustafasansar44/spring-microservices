@@ -5,6 +5,7 @@ import com.msansar.libraryservice.dto.LibraryDto;
 import com.msansar.libraryservice.service.LibraryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,6 +24,9 @@ public class LibraryController {
     private final LibraryService libraryService;
     private final Environment environment;
     private final Logger logger = LoggerFactory.getLogger(LibraryController.class);
+
+    @Value("${library.service.count}")
+    private Integer count;
 
     public LibraryController(LibraryService libraryService, Environment environment) {
         this.libraryService = libraryService;
@@ -51,5 +55,9 @@ public class LibraryController {
         return ResponseEntity.ok(libraryService.getAllLibraries());
     }
 
+    @GetMapping("/getyml")
+    public String getYml(){
+        return "COUNT: " + count.toString();
+    }
 
 }
