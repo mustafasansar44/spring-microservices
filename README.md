@@ -36,6 +36,10 @@ CONTROLLER PATH
 <h2 style="color:red"><b><i>Mikroservisler arası iletişim</h2>
 
 ```
+
+@EnableEurekaClient Servisi eureka'ya register etmek için kullandığımız anotasyon.
+@EnableFeignClient Register edilen servisi kullanmak için kullandığımız anotasyon.  bir mikro servisin başka bir mikro servisi çağırmak için kullanılan bir HTTP istemci kütüphanesidir.
+
 EurekaServer, bizim mikroservisler arasındaki iletişimimizi sağlar. Bağımsız uygulamalar olduğu için birbirlerini tanımazlar. Biz tanıtırız. 
 Bunu HTTP Rest api'ler ile gerçekleştirir. (GRPS ya da SOAP'ta olabilirdi.)
 Arada REST API varsa genelde kullanılan 2 opsiyon var. Bunlar RestTemplate ve FeignClient 
@@ -141,7 +145,28 @@ daha mantıklı olmaz mı ? 200 adet merge request yerine 1 tane yaparız ama 20
 
 3 farklı spring cloud config tekniği var. 
 - Classpath'tan config okumak
-- git 
+- git üzerinden konfigurasyon
+- (Hatırlamıyorum :D )
+
+Direkt git üzerinden bir repository de oluşturabilirsin ya da projenin repository'sini de kullanabilirsin.
+Hangisi best practice tartışılır
  
+Bu değerler şu anda config server içerisinde
+Mikroservislerin şuan erişimi yok. 
+http://localhost:8888/library-service/default
+http://localhost:8888/library-service/dev
+
+ilgili mikroservis bu conf'ları alabilmesi için pom.xml'ine dependency ekleyeceğiz.
+spring-cloud-starter-config
+
+Bunu ekledikten sonra artık spring-cloud-starter-config configurasyonları yapabilirim application.properties'te
+spring-cloud-config-uri=optional:configserver:http://localhost:8888/ # sonuna / koymazsan hata verir.
+ayrıca biz sonuna library-service/dev felan eklemiyoruz. Bunu dinamik olarak alıyor. application-name + profile şeklinde.
+application-name değiştirirsen conf'ların adını da değişmen gerekir.
+
+burada optional dememizin nedeni resiliance diyoruz ya uygulama hiç çökmesin dirençli uygulama olmasını istediğimiz için.
+
+
+
 ```
 
