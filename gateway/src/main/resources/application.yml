@@ -1,0 +1,42 @@
+spring:
+  jackson:
+    serialization:
+      INDENT_OUTPUT: true # Kodu oto formatlama
+  application:
+    name: gateway-service
+  cloud:
+    gateway:
+      mvc:
+        routes:  # Bu bir array aldığı için parametre değerleri otomatik içine alacak.
+          - id: book-service # Benim gateway tarafındaki tanımlamam.
+            uri: lb://book-service # Bağlanmak istediğimiz app'in application name'ini yazıyoruz.
+            predicates:
+              - Path=/book/** # Ben bu gateway aracılığıyla bookService'nin hangi url'lerine ulaşmak istiyorum ?
+          - id: library-service
+            uri: lb://library-service # Buradaki lb ön eki LoadBalancing yapar.
+            predicates:
+              - Path=/library/**
+    discovery:
+      locator:
+        enabled: true # Bunu da takip edebilmek için yazıyoruz.
+
+
+server:
+  port: 8889
+
+eureka:
+  client:
+    register-with-eureka: true
+    service-url:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka} # 8761 EurekaServier'in server.port'u
+    instance:
+      prefer-ip-address: true # ip ile register olsun istiyorum. DNS adıyla değil
+
+
+# Actuator Konfigurasyonu management. altındaki tüm konfigurasyonlar actuator'a ait
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*" # Bütün actuator linklerini ekle. Bunu yazmazsan sadece default olarak health ekler. Bu endpoint uygulama ayakta mı değil mi onu gösteriyor aslında.
+
