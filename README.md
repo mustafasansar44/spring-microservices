@@ -10,9 +10,9 @@ Book book3 = new Book("Kitap3", 2015, "Yazar3", "PressName3", "Isbn3");
 
 CONTROLLER PATH
 
-[GetMapping] /book                  # getAllBook()
-[GetMapping] /book/isbn/{isbn}      # getBookByIsbn(String isbn)
-[GetMapping] /{id}                  # getBookById(String id)
+[GetMapping]    /book                  # getAllBook()
+[GetMapping]    /book/isbn/{isbn}      # getBookByIsbn(String isbn)
+[GetMapping]    /{id}                  # getBookById(String id)
 ```
 
 <h2 style="color:red"><b><i>Library-Service API</h2>
@@ -20,65 +20,11 @@ CONTROLLER PATH
 ```		
 CONTROLLER PATH
 
-[PutMapping] /library               # addBookToLibrary(AddBookRequestDto requestDto) 
-[PostMapping] /library              # createLibrary()
-[GetMapping] /library/{id}          # getLibraryById(String id)
+[PutMapping]    /library               # addBookToLibrary(AddBookRequestDto requestDto) 
+[PostMapping]   /library               # createLibrary()
+[GetMapping]    /library/{id}          # getLibraryById(String id)
 ```
 
-
-
-<h2 style="color:red"><b><i>Bir servisi EurekaServer'a register etme</h2>
-
-```
-///
-```
-
-<h2 style="color:red"><b><i>Mikroservisler arası iletişim</h2>
-
-```
-
-@EnableEurekaClient Servisi eureka'ya register etmek için kullandığımız anotasyon.
-@EnableFeignClient Register edilen servisi kullanmak için kullandığımız anotasyon.  bir mikro servisin başka bir mikro servisi çağırmak için kullanılan bir HTTP istemci kütüphanesidir.
-
-EurekaServer, bizim mikroservisler arasındaki iletişimimizi sağlar. Bağımsız uygulamalar olduğu için birbirlerini tanımazlar. Biz tanıtırız. 
-Bunu HTTP Rest api'ler ile gerçekleştirir. (GRPS ya da SOAP'ta olabilirdi.)
-Arada REST API varsa genelde kullanılan 2 opsiyon var. Bunlar RestTemplate ve FeignClient 
-Hangi servis verilerini expose edecekse onu Eureka'ya register etmeliyiz.
-Bizim projede LibraryService, BookService'ye erişebilmeli ki id ile kitapları çekebilsin. Bundan dolayı BookService'yi register etmeliyiz.
-BookService, LibraryService'ye ihtiyacı olmadığı için registere gerek yok.(erişmek derken istek atma durumu yok)
-
-FeignClient anotasyonu ile herhangi bir arayüzü FeignClient'e çevirebiliriz.
-
-
-LibraryService'de bir client tanımladım. 
-mikroservisler spring.application.name ile Euroka'ya REGISTER olur.
-
-@FeignClient(
-    name = "book-service", # BookService'de application.properties'te tanımladığımız Register Name (spring.application.name)
-    path = "/book") # BookService'nin api path'i olduğu için
-
-# Burada kullanacağın metodları yaz sadece. 
-public interface BookServiceClient {
-    @GetMapping("/isbn/{isbn}")
-    ResponseEntity<BookIdResponseDto> getBookByIsbn(@PathVariable String isbn);
-}
-
-Fault Tolerance
-Biz normalde hata gönderiyoruz ya ExceptionMessage şeklinde, alınan hataya göre farklı bir process işlendiği olaya fault tolerance diyoruz.
-Biz hata aldığımızda yeni bir process oluşturmak için 
-
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-circuitbreaker-resilience4j</artifactId>
-        </dependency>
-        
-dependency'sini Library_Service'e ekledik
-NOT: Bir projede mesela a servisi b servisinde hata fırlattırırken
-b servisi a servisinde fault tolerance kullanabilir.
-
-MethodNotAllowed(405) bir hatadır. Logger.error() çümkü kod içerisinde bir şey hatalı ama gelen parametreye istinaden hatalar
-Logger info'dur
-```
 
 
 <h2 style="color:red"><b><i>Ders 4</h2>
@@ -165,8 +111,204 @@ ayrıca biz sonuna library-service/dev felan eklemiyoruz. Bunu dinamik olarak al
 application-name değiştirirsen conf'ların adını da değişmen gerekir.
 
 burada optional dememizin nedeni resiliance diyoruz ya uygulama hiç çökmesin dirençli uygulama olmasını istediğimiz için.
+```
 
-
+<h2 style="color:red"><b><i>Ders 6 Vault</h2>
 
 ```
+secret işlemlerini vault'ta yapıyoruz. Bize daha avantajlı ve daha güvenli bir yapı sunuyor.
+Mesela kubernetes cluster kuruyorsan, bu cluster'a direkt uygulama içerisnde kullanılan secretleri kubernetes 
+secret olarak vault üzerinden taşıyabilirsin.
+
+Biz bir önceki derste config ile properties verilerine git üzerinden ulaşıyorduk. Bizim config repoya ulaşan
+herkes bu propertylere ulaşabilir. Sensitive dataları böyle herkesin ulaşabileceği yerlerde saklamak riskli.
+Vault, secretManager ya da kubernetes secrets tarzı yerlerde saklamak lazım.
+```
+
+<h2 style="color:red"><b><i>NOTLAR</h2>
+
+```
+yapılan herhangi bir değişiklik başka bir mikroservisi etkiliyorsa o mikroservis değildir.
+servisler resilience olmak zorunda. mesela bookService erişilemez ya da çökerse bile libraryService dayanıklı olup düşmemesi gerekir.
+kubernetes içinde 1.öncelik ver eurekaServer'ı
+bookService, eurekaServer'a register oldu. libraryService'de eurekaServer'a discover oldu.
+
+LibraryService için mikroservis dependency'leri
+ - OpenFeign (LibraryService içerisinde FeignClient yaratmak için.)
+ - Eureka Discovery Client (LibraryService'i de register edeceğiz.)
+ 
+BookService için mikroservis dependency'leri
+ - OpenFeign (LibraryService içerisinde FeignClient yaratmak için.)
+ - Eureka Discovery Client (LibraryService'i de register edeceğiz.)
+ 
+
+ 
+Ben bookService'yi sadece veriyi dışarı açmak için kullanacağım. (diğer mikroservislere)
+BookService
+ - List<BookDto> getAllBooks()
+ - BookIdDto findByIsbn(String isbn)
+ 
+LibraryService'den book sorguladığım zaman bir endpoint sadece bookId dönecek. Diğeri de bookDetails dönecek.
+BookIdDto
+ - id
+ - isbn 
+ 
+BookMain (Insertions)
+ - new Book()
+ 
+ 
+OneToMany durumlarında mesela Library içerisinde List<Book> books yerine List<String> bookId ile sadece bookId paylaşımı yapacağım.
+
+Eureka, client side loadBalancing için kullanılıyor buna bir daha bak emin değilim.
+EurekaServer'da service discovery orcestration
+service discovery sadece eureka'da diğer herşey kubernetes'te yapılabilir ama çok mantıklı bir yaklaşım değil.
+Kubernetes'e geçiyorsam tüm orcestration'u birine aktarmak lazım.
+
+Kubernetes'in service discovery için istio var. Bu hem loadBalancing yapıyor hem faultTolerance hem resilience hem de service discovery
+ama eurekaserver ne yapıyor sadece service discovery yapıyor.
+
+istio               vs          eureka
+serviceDiscovery                ServiceDiscovery
+loadBalancing
+faultTolerance
+resilience
+
+Ben Library'e book eklemek için bookService'ye ulaşmam gerekir. Bunun için bookService'yi Eureka'ya register etmeliyim.
+EurekaServer yoksa önce eurekaServer'i oluşturalım.
+
+```
+
+
+
+<h2 style="color:red"><b><i>Mikroservisler arası iletişim</h2>
+
+```
+EurekaServer, bizim mikroservisler arasındaki iletişimimizi sağlar. Bağımsız uygulamalar olduğu için birbirlerini tanımazlar. Biz tanıtırız. 
+Bunu HTTP Rest api'ler ile gerçekleştirir. (GRPS ya da SOAP'ta olabilirdi.)
+Arada REST API varsa genelde kullanılan 2 opsiyon var. Bunlar RestTemplate ve FeignClient 
+Hangi servis verilerini expose edecekse onu Eureka'ya register etmeliyiz.
+Bizim projede LibraryService, BookService'ye erişebilmeli ki id ile kitapları çekebilsin. Bundan dolayı BookService'yi register etmeliyiz.
+BookService, LibraryService'ye ihtiyacı olmadığı için registere gerek yok.(erişmek derken istek atma durumu yok)
+```
+
+<h2 style="color:red"><b><i>Eureka Server Oluşturma</h2>
+
+```
+spring projesi oluştur. Dependencyler
+ - EurekaServer # spring-cloud-starter-netflix-eureka-server
+ 
+daha sonra main metodunun olduğu class'a 
+@EnableEurekaServer 
+anotasyonunu ekle.
+
+application.properties dosyasına da şunları ekle.
+
+server.port=8761 # Default 
+eureka.client.register-with-eureka=false # Client'ler eureka'yı register etsin mi ?
+eureka.client.fetch-registry=false # Client'ler kendi başına registry'i yakalasın mı ? hayır eureka'ya sorulacak.
+
+Daha sonra projeyi başlatıp
+localhost:8761
+üzerinden eureka serveri kontrol edebilirsin.
+```
+
+<h2 style="color:red"><b><i>Bir servisi Eureka'ya client olarak bağlamak</h2>
+```
+projenin main metodunun olduğu class'a gelerek
+@EnableEurekaClient 
+ekleyebilirsin. (Servisi eureka'ya register etmek için kullandığımız anotasyon.)
+
+application.properties'e ise
+server.port=0 # Random oluşturulacak port eurekaServer'da saklıdır. Bundan dolayı dışarı açmamış oluyoruz aslında.
+spring.application.name=book-service
+eureka.instance.prefer-ip-address=true # Eureka'ya ip adresini kullan diyoruz.
+eureka.instance.instance-id=${spring.cloud.client.hostname}:${spring.application.name}:${spring.application.instance_id:${random.value}}
+eureka.client.service-url.default-zone=${EUREKA_URI:http://localhost:8761/eureka}
+```
+
+<h2 style="color:red"><b><i>Client olarak bağlanmış servise başka bir servis nasıl ulaşabilir? (FeignClient)</h2>
+
+```
+Birkaç farklı yöntem var. Biz feignClient kullanacağız.
+
+İlgili servis için dependency'ler (Bizim için LibraryService)
+ - Eureka Discovery Client # spring-cloud-starter-netflix-eureka-client (EurekaServer'a register olması için)
+ - OpenFeign # spring-cloud-starter-openfeign (service içerisinde FeignClient yaratmak için.)
+ 
+Daha sonra LibraryService'nin main class'ına @EnableFeignClients anotasyonunu ekleyerek bir bean olarak spring application
+context'te görünmesini sağlarız.
+
+@EnableFeignClient Register edilen servisi kullanmak istiyorsak (Bizim senaryoda LibraryService'nin BookService'yi kullanabilmesi
+için LibraryService'ye ekliyoruz.) için kullandığımız anotasyon.  bir mikro servisin başka bir mikro servisi çağırmak için kullanılan bir HTTP istemci kütüphanesidir. 
+ 
+client paketi oluşturup altına BookServiceClient interface'i oluştur.
+BookServiceClient interface'ine @FeignClient(params) anotasyonunu ekledikten sonra artık bir feignClient olur.
+
+@FeignClient(
+    name="book-service", # Burası eureka'dan almak istediğimiz servisin adı. BookService'de application.properties'te tanımladığımız Register Name (spring.application.name)
+    path="/v1/book" # ilgili servisin path'ı
+)
+
+Daha sonra bu interface içerisinde book-service'de hangi endpoint'lere ulaşmak istiyorsam onları yazıyorum.
+NOT: Eğer aşağıdaki gibi book'taki DTO'lardan döndereceksen bu dto'ları da libraryService'de tanımlarız.
+Biz BookResponseDto yazmasak JSON olarak döner. BookResponseDto yazdığımız için gelen JSON'u BookResponseDto'ya parse eder.
+
+@GetMapping("/{id}")
+@CircuitBreaker(name = "getBookByIdCircuitBreaker", fallbackMethod = "getBookByIdFallback")
+ResponseEntity<BookResponseDto> getBookById(@PathVariable String id);
+
+Daha sonra libraryService'de getAllBooksInLibraryById(String id) metodunda bookService'den kitapları alacağımız zaman
+library.getUserBookId() # Burası db'ye kaydettiğimiz id'ler. getUserBookId diye isimlendirebiliriz.
+        .stream()
+        .map(bookServiceClient::getBookById) # Bu noktada feignClient çalışacak
+        .map(ResponseEntity::getBody)
+        .collect(Collectors.toList())
+ 
+```
+
+<h2 style="color:red"><b><i>Bizim senaryomuzda neden client olarak bağlanmış servise bağlandık ?</h2>
+
+```
+Library'nin veritabanına library entity eklerken sadece libraryId ve o library'e ait kitapların id'sini liste şeklinde tuttum.
+Ben tüm kitap bilgisini library db'ye atmayayım. Sadece kitap id'lerini atayım. Ne zaman api ile döneceksem o zaman gidip
+feignClient aracılığıyla bookService'yi çağırıp detaylarını çekeyim.
+
+Biz bunun için bookService'de getBookById'yi kullanacağız.
+```
+
+<h2 style="color:red"><b><i>Peki 2 servis iletişiminde bir hata durumunda ne olacak?</h2>
+
+```
+Bunun için LibraryService/client/RetrieveMessageErrorDecoder'a bakabilirsin. Açıklamalarıyla birlikte yazdım.
+```
+
+
+
+
+
+
+
+
+
+
+<h2 style="color:red"><b><i>Fault Tolerance</h2>
+
+```
+Fault Tolerance
+Biz normalde hata gönderiyoruz ya ExceptionMessage şeklinde, alınan hataya göre farklı bir process işlendiği olaya fault tolerance diyoruz.
+Biz hata aldığımızda yeni bir process oluşturmak için
+
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-circuitbreaker-resilience4j</artifactId>
+        </dependency>
+
+dependency'sini Library_Service'e ekledik
+NOT: Bir projede mesela a servisi b servisinde hata fırlattırırken
+b servisi a servisinde fault tolerance kullanabilir.
+
+MethodNotAllowed(405) bir hatadır. Logger.error() çümkü kod içerisinde bir şey hatalı ama gelen parametreye istinaden hatalar
+Logger info'dur
+```
+
 
