@@ -213,6 +213,7 @@ localhost:8761
 ```
 
 <h2 style="color:red"><b><i>Bir servisi Eureka'ya client olarak bağlamak</h2>
+ 
 ```
 projenin main metodunun olduğu class'a gelerek
 @EnableEurekaClient 
